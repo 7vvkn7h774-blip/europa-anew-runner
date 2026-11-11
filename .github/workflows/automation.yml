@@ -70,7 +70,7 @@ jobs:
       TRIAL_STORY: ${{ inputs.trial_story }}
       INITIALIZE_STATE: ${{ inputs.initialize_state && 'true' || 'false' }}
       EUROPA_ENABLE_TIKTOK_BUFFER: ${{ vars.EUROPA_ENABLE_TIKTOK_BUFFER || 'false' }}
-      EUROPA_ENABLE_PUBLISH: ${{ vars.EUROPA_ENABLE_PUBLISH || 'false' }}
+      EUROPA_ENABLE_PUBLISH: 'false'
       RECOVERY_STORY: ${{ inputs.recovery_story }}
       RECOVERY_PLATFORM: ${{ inputs.recovery_platform }}
       RECOVERY_OUTCOME: ${{ inputs.recovery_outcome }}
@@ -94,6 +94,7 @@ jobs:
         run: python tools/test_offline.py
       - name: Run selected mode
         env:
+          EUROPA_TELEGRAM_ONLY: 'true'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           STATE_REPOSITORY: 7vvkn7h774-blip/europa-anew
           STATE_GITHUB_TOKEN: ${{ secrets.STATE_GITHUB_TOKEN }}
