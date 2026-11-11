@@ -1,0 +1,116 @@
+name: Europa automation
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry-run makes samples only; review sends private previews; live may publish approved Instagram posts'
+        type: choice
+        options: [dry-run, check, review, live, recover, telegram-test, callback, hourly, refill]
+        default: dry-run
+      scheduled_payload:
+        type: string
+        description: 'Signed Cloudflare hourly receipt; leave empty for manual tests'
+      refill_generation:
+        type: string
+        default: '0'
+        description: 'Internal reserve continuation counter'
+      callback_payload:
+        type: string
+        description: 'Signed Telegram relay only'
+      review_story:
+        description: 'Private review only: retry one existing story through all normal checks'
+        type: string
+      trial_story:
+        description: 'Live trial only: publish this exact story ID; leave empty for normal operation'
+        type: string
+      initialize_state:
+        description: 'FIRST installation only. Never select this to recover lost state.'
+        type: boolean
+        default: false
+      recovery_story:
+        description: 'Recover only: exact story ID'
+        type: string
+      recovery_platform:
+        description: 'Recover only: platform to reconcile'
+        type: choice
+        options: [instagram, buffer]
+      recovery_outcome:
+        description: 'Recover only: published means verified Instagram publication / verified Buffer submission'
+        type: choice
+        options: [not-published, published]
+      recovery_remote_id:
+        description: 'Recover only: verified Instagram media ID or Buffer post ID'
+        type: string
+      recovery_notes:
+        description: 'Recover only: investigation details; no secrets'
+        type: string
+      recovery_confirmed:
+        description: 'I checked the remote account/container/queue and confirmed the outcome'
+        type: boolean
+        default: false
+  # Hourly dispatch is owned by the deployed Cloudflare Cron Trigger.
+permissions:
+  contents: read
+  actions: write
+concurrency:
+  group: europa-production
+  cancel-in-progress: false
+  queue: max
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      REQUESTED_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || vars.EUROPA_MODE || 'dry-run' }}
+      SCHEDULED_PAYLOAD: ${{ inputs.scheduled_payload }}
+      REFILL_GENERATION: ${{ inputs.refill_generation || '0' }}
+      CALLBACK_PAYLOAD: ${{ inputs.callback_payload }}
+      TELEGRAM_WEBHOOK_ENABLED: ${{ vars.TELEGRAM_WEBHOOK_ENABLED || 'false' }}
+      REVIEW_STORY: ${{ inputs.review_story }}
+      TRIAL_STORY: ${{ inputs.trial_story }}
+      INITIALIZE_STATE: ${{ inputs.initialize_state && 'true' || 'false' }}
+      EUROPA_ENABLE_TIKTOK_BUFFER: ${{ vars.EUROPA_ENABLE_TIKTOK_BUFFER || 'false' }}
+      EUROPA_ENABLE_PUBLISH: ${{ vars.EUROPA_ENABLE_PUBLISH || 'false' }}
+      RECOVERY_STORY: ${{ inputs.recovery_story }}
+      RECOVERY_PLATFORM: ${{ inputs.recovery_platform }}
+      RECOVERY_OUTCOME: ${{ inputs.recovery_outcome }}
+      RECOVERY_REMOTE_ID: ${{ inputs.recovery_remote_id }}
+      RECOVERY_NOTES: ${{ inputs.recovery_notes }}
+      RECOVERY_CONFIRMED: ${{ inputs.recovery_confirmed && 'true' || 'false' }}
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          repository: 7vvkn7h774-blip/europa-anew
+          token: ${{ secrets.STATE_GITHUB_TOKEN }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: "python -m pip install --require-hashes --only-binary=:all: -r requirements.txt"
+      - if: github.event_name != 'schedule' && inputs.mode != 'callback' && inputs.mode != 'hourly' && inputs.mode != 'refill'
+        run: python tools/test_offline.py
+      - name: Run selected mode
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATE_REPOSITORY: 7vvkn7h774-blip/europa-anew
+          STATE_GITHUB_TOKEN: ${{ secrets.STATE_GITHUB_TOKEN }}
+          APPROVAL_RELAY_SECRET: ${{ secrets.APPROVAL_RELAY_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_REVIEWER_IDS: ${{ secrets.TELEGRAM_REVIEWER_IDS }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_ACCOUNT_ID: ${{ secrets.INSTAGRAM_ACCOUNT_ID }}
+          INSTAGRAM_API_VERSION: ${{ secrets.INSTAGRAM_API_VERSION }}
+          INSTAGRAM_LOGIN_ROUTE: ${{ vars.INSTAGRAM_LOGIN_ROUTE || 'instagram' }}
+          MEDIA_REPOSITORY: ${{ vars.MEDIA_REPOSITORY }}
+          MEDIA_BASE_URL: ${{ vars.MEDIA_BASE_URL }}
+          BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+          BUFFER_TIKTOK_CHANNEL_ID: ${{ secrets.BUFFER_TIKTOK_CHANNEL_ID }}
+          MEDIA_GITHUB_TOKEN: ${{ secrets.MEDIA_GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AUTO_DRAFT_ENABLED: ${{ vars.AUTO_DRAFT_ENABLED || 'false' }}
+          AUTO_DRAFT_FREE_TIER_CONFIRMED: ${{ vars.AUTO_DRAFT_FREE_TIER_CONFIRMED || 'false' }}
+        run: python tools/run_cloud.py
