@@ -65,7 +65,7 @@ jobs:
       SCHEDULED_PAYLOAD: ${{ inputs.scheduled_payload }}
       REFILL_GENERATION: ${{ inputs.refill_generation || '0' }}
       CALLBACK_PAYLOAD: ${{ inputs.callback_payload }}
-      TELEGRAM_WEBHOOK_ENABLED: ${{ vars.TELEGRAM_WEBHOOK_ENABLED || 'false' }}
+      TELEGRAM_WEBHOOK_ENABLED: ${{ vars.TELEGRAM_WEBHOOK_ENABLED || 'true' }}
       REVIEW_STORY: ${{ inputs.review_story }}
       TRIAL_STORY: ${{ inputs.trial_story }}
       INITIALIZE_STATE: ${{ inputs.initialize_state && 'true' || 'false' }}
@@ -112,6 +112,6 @@ jobs:
           BUFFER_TIKTOK_CHANNEL_ID: ${{ secrets.BUFFER_TIKTOK_CHANNEL_ID }}
           MEDIA_GITHUB_TOKEN: ${{ secrets.MEDIA_GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          AUTO_DRAFT_ENABLED: ${{ vars.AUTO_DRAFT_ENABLED || 'false' }}
-          AUTO_DRAFT_FREE_TIER_CONFIRMED: ${{ vars.AUTO_DRAFT_FREE_TIER_CONFIRMED || 'false' }}
+          AUTO_DRAFT_ENABLED: ${{ vars.AUTO_DRAFT_ENABLED || 'true' }}
+          AUTO_DRAFT_FREE_TIER_CONFIRMED: ${{ vars.AUTO_DRAFT_FREE_TIER_CONFIRMED || 'true' }}
         run: python tools/run_cloud.py
