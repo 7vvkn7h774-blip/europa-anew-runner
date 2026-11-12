@@ -1,0 +1,24 @@
+name: Private photo delivery test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  photo-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: 7vvkn7h774-blip/europa-anew
+          token: ${{ secrets.STATE_GITHUB_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --require-hashes --only-binary=:all: -r requirements.txt
+      - run: python -m unittest tests.test_background_rotation -q
+      - run: python tools/photo_smoke.py
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
