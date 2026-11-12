@@ -1,5 +1,7 @@
 name: Europa automation
 on:
+  schedule:
+    - cron: '37,57 * * * *' # Reserve-only recovery; never sends a Telegram post.
   workflow_dispatch:
     inputs:
       mode:
@@ -61,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
-      REQUESTED_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.mode || vars.EUROPA_MODE || 'dry-run' }}
+      REQUESTED_MODE: ${{ github.event_name == 'schedule' && 'refill' || inputs.mode || 'dry-run' }}
       SCHEDULED_PAYLOAD: ${{ inputs.scheduled_payload }}
       REFILL_GENERATION: ${{ inputs.refill_generation || '0' }}
       CALLBACK_PAYLOAD: ${{ inputs.callback_payload }}
